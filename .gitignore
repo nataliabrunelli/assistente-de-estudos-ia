@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+.venv/
+
+# Arquivos de ambiente - NUNCA envie sua API KEY ou outros segredos!
+.env
+.env.*
+!.env.example
+
+# Streamlit Secrets (MUITO IMPORTANTE PARA NÃO ENVIAR SEGREDOS)
+# Se o seu secrets.toml está dentro de .streamlit na pasta 'api'
+api/.streamlit/secrets.toml
+.streamlit/secrets.toml
+
+# Se você tivesse um .streamlit na raiz com segredos (menos provável para sua estrutura)
+# .streamlit/secrets.toml
+
+# IDE / Editor specific
+.vscode/
+.idea/
+*.project
+*.sublime-project
+*.sublime-workspace
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Log files
+*.log
+logs/
+*.log.*
+
+# Distribution / packaging
+build/
+dist/
+sdist/
+*.egg-info/
+*.egg
+MANIFEST
+
+# Temporary files
+*.tmp
+*~
+*.swp
+*.swo
+
+# Coverage reports
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
