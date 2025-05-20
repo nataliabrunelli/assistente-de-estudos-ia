@@ -17,22 +17,51 @@ warnings.filterwarnings("ignore")
 st.set_page_config(page_title="Assistente de Estudos AI", layout="wide")
 
 # --- Configuração da API Key ---
-api_key_env = None
+api_key_to_use = None
 google_api_key_found = False
 
-# 1. Tentar carregar dos Segredos do Streamlit (para desenvolvimento local ou Streamlit Cloud)
-if 'GOOGLE_API_KEY' in st.secrets:
-        api_key_env = st.secrets['GOOGLE_API_KEY']
-        google_api_key_found = True
+# 1. PRIMEIRO, tentar carregar das variáveis de ambiente do sistema
+#    (Isso é como o Render e outros provedores de PaaS disponibilizam segredos)
+api_key_env_var = os.getenv('GOOGLE_API_KEY')
+if api_key_env_var:
+    api_key_to_use = api_key_env_var
+    google_api_key_found = True
+   # st.info("API Key carregada a partir das variáveis de ambiente do sistema.") # Opcional para debug
+else:
+   # st.info("Chave GOOGLE_API_KEY não encontrada nas variáveis de ambiente do sistema. Tentando Segredos do Streamlit...") # Opcional
+    pass
 
+# 2. SE NÃO ENCONTRADA nas variáveis de ambiente, TENTAR carregar dos Segredos do Streamlit
+#    (Isso é para desenvolvimento local com secrets.toml)
+if not google_api_key_found:
+    try:
+        if 'GOOGLE_API_KEY' in st.secrets: # Esta linha causava o erro se secrets.toml não existisse
+            api_key_to_use = st.secrets['GOOGLE_API_KEY']
+            google_api_key_found = True
+            st.info("API Key carregada a partir dos Segredos do Streamlit.") # Opcional
+        else: # Opcional: para debug se a chave não estiver no secrets.toml
+            st.info("Chave GOOGLE_API_KEY não encontrada nos Segredos do Streamlit.")
+    except FileNotFoundError: # Especificamente para o caso de secrets.toml não existir
+        st.info("Arquivo secrets.toml não encontrado (normal em produção).") # Opcional
+        pass # É normal o secrets.toml não existir em produção, então apenas continue
+    except Exception as e_secrets: # Captura outras exceções de st.secrets, mas não interrompe
+        st.warning(f"Erro ao tentar ler os segredos do Streamlit: {e_secrets}. Isso pode ser ignorado em produção se a chave estiver nas variáveis de ambiente.") # Opcional
+        pass
 
-# 2. Se não encontrada nos segredos do Streamlit, tentar carregar das variáveis de ambiente do sistema
-#    (Isso é como o Vercel e outros provedores de PaaS disponibilizam segredos)
-elif not google_api_key_found:
-    api_key_env = os.getenv('GOOGLE_API_KEY')
-    if api_key_env:
-        google_api_key_found = True
-    st.stop() # Impede a execução do restante do app se a chave não for encontrada
+# 3. Configurar a API Key se encontrada e definir no os.environ
+if google_api_key_found and api_key_to_use:
+    os.environ["GOOGLE_API_KEY"] = api_key_to_use
+    
+else:
+    # Esta mensagem de erro agora é mais genérica, pois tentamos os dois métodos
+    st.error("ERRO CRÍTICO: GOOGLE_API_KEY não configurada!")
+    st.markdown("""
+        Verifique se a `GOOGLE_API_KEY` está definida:
+        - **No Render (ou similar):** Como uma variável de ambiente nas configurações do seu serviço.
+        - **Para desenvolvimento local:** Em um arquivo `.streamlit/secrets.toml`.
+    """)
+    st.stop()
+
 
 
 # --- Função `call_agent`  ---
