@@ -28,7 +28,7 @@ if 'GOOGLE_API_KEY' in st.secrets:
 
 # 2. Se não encontrada nos segredos do Streamlit, tentar carregar das variáveis de ambiente do sistema
 #    (Isso é como o Vercel e outros provedores de PaaS disponibilizam segredos)
-if not google_api_key_found:
+elif not google_api_key_found:
     api_key_env = os.getenv('GOOGLE_API_KEY')
     if api_key_env:
         google_api_key_found = True
