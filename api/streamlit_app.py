@@ -62,7 +62,107 @@ else:
     """)
     st.stop()
 
+# -------------------------- TESTE/DEBBUGING DE DEPLOY ---------------
+# ... (após a configuração da API Key e genai.configure) ...
 
+st.subheader("--- INÍCIO DO BLOCO DE TESTE DIRETO DA API (VERSÃO DETALHADA) ---")
+api_key_para_teste = os.getenv('GOOGLE_API_KEY')
+
+if api_key_para_teste:
+    st.info(f"Usando API Key (parcial): {api_key_para_teste[:5]}...{api_key_para_teste[-5:]} para teste direto.")
+    try:
+        # <<--- MUDE O MODELO AQUI PARA TESTE TAMBÉM --- >>
+        MODEL_NAME_FOR_TEST = "gemini-1.0-pro" # TENTE ESTE MODELO
+        st.info(f"Modelo para teste direto: {MODEL_NAME_FOR_TEST}")
+
+        # Verifique se a biblioteca genai foi importada e configurada
+        if 'genai' not in globals():
+            st.error("'genai' (google.generativeai) não foi importado ou configurado globalmente para o teste.")
+        else:
+            model_test = genai.GenerativeModel(MODEL_NAME_FOR_TEST)
+            prompt_de_teste = "Olá, Gemini! Qual é a capital da França? Responda de forma concisa."
+            st.info(f"Enviando prompt de teste direto: '{prompt_de_teste}'")
+
+            # Configurações de segurança mais permissivas para depuração
+            from google.generativeai.types import HarmCategory, HarmBlockThreshold
+            safety_settings_for_test = {
+                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+            }
+            st.info(f"Usando safety_settings para teste direto: {safety_settings_for_test}")
+
+            response_test = model_test.generate_content(
+                prompt_de_teste,
+                safety_settings=safety_settings_for_test
+            )
+
+            st.info("Resposta do teste direto recebida. Analisando...")
+
+            response_text = ""
+            # Acesso ao texto da resposta pode variar um pouco entre versões/modelos
+            try:
+                response_text = response_test.text
+            except Exception as e_text:
+                st.warning(f"Não foi possível acessar response_test.text diretamente: {e_text}")
+                if hasattr(response_test, 'parts') and response_test.parts:
+                    for part in response_test.parts:
+                        if hasattr(part, 'text'):
+                            response_text += part.text
+            
+            if response_text:
+                st.text_area("TEXTO DA RESPOSTA DO TESTE DIRETO:", response_text, height=100)
+            else:
+                st.error("NENHUM TEXTO FOI RETORNADO NO TESTE DIRETO.")
+
+            if hasattr(response_test, 'prompt_feedback') and response_test.prompt_feedback:
+                st.write("Prompt Feedback do teste direto:", response_test.prompt_feedback)
+                if response_test.prompt_feedback.block_reason:
+                    st.error(f"BLOQUEIO DO PROMPT no teste direto! Razão: {response_test.prompt_feedback.block_reason_message or response_test.prompt_feedback.block_reason}")
+            else:
+                st.info("Sem prompt_feedback (ou prompt_feedback vazio) no teste direto.")
+
+            if hasattr(response_test, 'candidates') and response_test.candidates:
+                st.write(f"Candidatos do teste direto: {len(response_test.candidates)}")
+                for i, candidate in enumerate(response_test.candidates):
+                    st.write(f"--- Candidato {i} ---")
+                    if hasattr(candidate, 'content') and candidate.content and candidate.content.parts:
+                        candidate_text = "".join(p.text for p in candidate.content.parts if hasattr(p, 'text'))
+                        st.write(f"  Texto do Candidato {i}: {candidate_text if candidate_text else 'Sem texto no candidato.'}")
+                    else:
+                        st.write(f"  Candidato {i} não tem 'content.parts' com texto.")
+
+                    if hasattr(candidate, 'finish_reason') and candidate.finish_reason:
+                        finish_reason_name = candidate.finish_reason.name if hasattr(candidate.finish_reason, 'name') else str(candidate.finish_reason)
+                        st.info(f"  Finish Reason do Candidato {i}: {finish_reason_name}")
+                        if finish_reason_name == "SAFETY":
+                            st.error(f"  RESPOSTA DO CANDIDATO {i} BLOQUEADA POR SEGURANÇA (SAFETY)!")
+                    else:
+                        st.warning(f"  Candidato {i} sem 'finish_reason'.")
+                    
+                    if hasattr(candidate, 'safety_ratings') and candidate.safety_ratings:
+                        st.write(f"  Safety Ratings do Candidato {i}:", candidate.safety_ratings)
+            else:
+                st.warning("Nenhum 'candidates' na resposta do teste direto, ou a estrutura é inesperada.")
+            
+            st.info("Tentando mostrar a estrutura da resposta_test (pode ser útil para depuração):")
+            try:
+                st.json(str(response_test)) # Tenta mostrar como string se a serialização direta falhar
+            except Exception as e_json:
+                st.warning(f"Não foi possível serializar response_test para JSON: {e_json}")
+
+
+    except Exception as e_test_direct:
+        st.error(f"EXCEÇÃO NO TESTE DIRETO DA API GEMINI: {type(e_test_direct).__name__} - {e_test_direct}")
+        st.error("Isso sugere um problema com a API Key (permissões, validade), o modelo, cotas, ou conectividade do Render para a API do Google.")
+        import traceback
+        st.text(f"Traceback completo da exceção no teste direto:\n{traceback.format_exc()}")
+else:
+    st.error("API Key não encontrada para o teste direto.")
+st.subheader("--- FIM DO BLOCO DE TESTE DIRETO DA API ---")
+
+# --------------------------------------
 
 # --- Função `call_agent`  ---
 def call_agent(agent: Agent, message_text: str, context: dict = None) -> str:
