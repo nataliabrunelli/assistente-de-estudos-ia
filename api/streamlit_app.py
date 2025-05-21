@@ -79,12 +79,12 @@ if api_key_para_teste:
         if 'genai' not in globals():
             st.error("'genai' (google.generativeai) não foi importado ou configurado globalmente para o teste.")
         else:
-            model_test = genai.GenerativeModel(MODEL_NAME_FOR_TEST)
+            model_test = genai.models(MODEL_NAME_FOR_TEST)
             prompt_de_teste = "Olá, Gemini! Qual é a capital da França? Responda de forma concisa."
             st.info(f"Enviando prompt de teste direto: '{prompt_de_teste}'")
 
             # Configurações de segurança mais permissivas para depuração
-            from google.generativeai.types import HarmCategory, HarmBlockThreshold
+            from google.genai.types import HarmCategory, HarmBlockThreshold
             safety_settings_for_test = {
                 HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
                 HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
